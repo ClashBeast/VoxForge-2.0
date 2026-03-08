@@ -290,47 +290,30 @@ function loop(t) {
 // New world
 window._startGame = function () {
   menuLoopActive = false;
-
-  // Show loading message so player knows it's working
-  const overlay = document.getElementById('overlay');
-  overlay.innerHTML = '<div style="font-family:'Orbitron',sans-serif;font-size:22px;color:#39ff6a;letter-spacing:8px;text-shadow:0 0 20px rgba(57,255,106,0.8)">GENERATING WORLD...</div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(57,255,106,0.4);margin-top:12px;letter-spacing:3px">Please wait</div>';
-
-  // Yield to browser so the loading text actually renders before the heavy work
-  setTimeout(() => {
-    genWorld();
-    spawnPlayer();
-    fullRebuild();
-    overlay.style.display = 'none';
-    setStarted(true);
-    document.body.requestPointerLock();
-    buildHUD(selSlot);
-    prevT = -1;
-    requestAnimationFrame(loop);
-  }, 60);
+  document.getElementById('overlay').style.display = 'none';
+  genWorld();
+  spawnPlayer();
+  fullRebuild();
+  setStarted(true);
+  document.body.requestPointerLock();
+  buildHUD(selSlot);
+  prevT = -1;
+  requestAnimationFrame(loop);
 };
 
 // Continue from save
 window._loadAndStart = function () {
   menuLoopActive = false;
-
-  const overlay = document.getElementById('overlay');
-  overlay.innerHTML = '<div style="font-family:'Orbitron',sans-serif;font-size:22px;color:#39ff6a;letter-spacing:8px;text-shadow:0 0 20px rgba(57,255,106,0.8)">LOADING WORLD...</div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(57,255,106,0.4);margin-top:12px;letter-spacing:3px">Restoring your save</div>';
-
-  setTimeout(() => {
-    if (loadWorld()) {
-      spawnPlayer();
-      fullRebuild();
-      overlay.style.display = 'none';
-      setStarted(true);
-      document.body.requestPointerLock();
-      buildHUD(selSlot);
-      prevT = -1;
-      requestAnimationFrame(loop);
-    } else {
-      overlay.innerHTML = '<div style="font-family:'Orbitron',sans-serif;font-size:18px;color:#ff4444;letter-spacing:4px">LOAD FAILED</div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(255,100,100,0.5);margin-top:12px">No save data found — please start a new world</div>';
-      setTimeout(() => location.reload(), 2500);
-    }
-  }, 60);
+  if (loadWorld()) {
+    spawnPlayer();
+    fullRebuild();
+    document.getElementById('overlay').style.display = 'none';
+    setStarted(true);
+    document.body.requestPointerLock();
+    buildHUD(selSlot);
+    prevT = -1;
+    requestAnimationFrame(loop);
+  }
 };
 
 // Resume from pause
@@ -362,26 +345,17 @@ window._newGame = function () {
   if (!confirm('Delete your save and start a new world?')) return;
   menuLoopActive = false;
   deleteSave();
-
-  // Show brief loading flash
-  document.getElementById('pause').style.display = 'none';
-  const overlay = document.getElementById('overlay');
-  overlay.style.display = 'flex';
-  overlay.innerHTML = '<div style="font-family:\'Orbitron\',sans-serif;font-size:22px;color:#39ff6a;letter-spacing:8px;text-shadow:0 0 20px rgba(57,255,106,0.8)">GENERATING WORLD...</div>';
-
-  setTimeout(() => {
-    genWorld();
-    spawnPlayer();
-    fullRebuild();
-    overlay.style.display = 'none';
-    document.getElementById('loadWorldBtn').style.display = 'none';
-    prevT = -1;
-    import('./player/input.js').then(m => {
-      m.setPaused(false);
-      document.body.requestPointerLock();
-      requestAnimationFrame(loop);
-    });
-  }, 60);
+  genWorld();
+  spawnPlayer();
+  fullRebuild();
+  document.getElementById('loadWorldBtn').style.display = 'none';
+  prevT = -1;
+  import('./player/input.js').then(m => {
+    m.setPaused(false);
+    document.getElementById('pause').style.display = 'none';
+    document.body.requestPointerLock();
+    requestAnimationFrame(loop);
+  });
 };
 
 // Respawn
