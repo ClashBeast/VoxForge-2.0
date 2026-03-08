@@ -580,7 +580,13 @@ function deleteWorld() {
 function startNewWorld() {
   closeModal('spModal');
   localStorage.setItem('voxforge_saved_at', new Date().toLocaleString());
-  window._startGame && window._startGame();
+  // main.js is type="module" (deferred) — wait for it to register _startGame
+  function tryStart(attempts) {
+    if (window._startGame) { window._startGame(); return; }
+    if (attempts > 50) { alert('Game failed to load. Try refreshing.'); return; }
+    setTimeout(() => tryStart(attempts + 1), 100);
+  }
+  tryStart(0);
 }
 
 // ── Options ───────────────────────────────────────────────────────
@@ -619,7 +625,14 @@ function confirmQuit() {
 
 // ── Game bridge (all original function names preserved) ───────────
 function startGame()    { window._startGame    && window._startGame();    }
-function loadAndStart() { window._loadAndStart && window._loadAndStart(); }
+function loadAndStart() {
+  function tryLoad(attempts) {
+    if (window._loadAndStart) { window._loadAndStart(); return; }
+    if (attempts > 50) { alert('Game failed to load. Try refreshing.'); return; }
+    setTimeout(() => tryLoad(attempts + 1), 100);
+  }
+  tryLoad(0);
+}
 function resumeGame()   { window._resumeGame   && window._resumeGame();   }
 function respawn()      { window._respawn      && window._respawn();      }
 function saveGame() {
