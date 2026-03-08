@@ -137,22 +137,15 @@ if (hasSave()) {
 }
 
 // ── MENU BACKGROUND: live 3D world orbit ──────────────────────────
+// IMPORTANT: deferred via setTimeout so this module finishes loading
+// first — _startGame etc. must be registered before anything runs.
 let menuLoopActive = true;
 let menuT = 0;
 const ORBIT_SPEED = 0.018;
-
-// Generate menu background world silently at boot
-genWorld();
-fullRebuild();
-
-// Find terrain height at center for camera anchor
-const centerX = WSIZ / 2, centerZ = WSIZ / 2;
 let menuGroundY = 12;
-for (let y = WMAXH; y >= 0; y--) {
-  if (solid(centerX | 0, y, centerZ | 0)) { menuGroundY = y; break; }
-}
-
+let centerX = WSIZ / 2, centerZ = WSIZ / 2;
 let menuPrevT = -1;
+
 function menuLoop(t) {
   if (!menuLoopActive) return;
   requestAnimationFrame(menuLoop);
@@ -161,7 +154,6 @@ function menuLoop(t) {
   menuPrevT = t;
   menuT += dt;
 
-  // Slow cinematic orbit around world center
   const angle = menuT * ORBIT_SPEED * Math.PI * 2;
   const cx = centerX + Math.cos(angle) * 24;
   const cz = centerZ + Math.sin(angle) * 24;
@@ -174,12 +166,20 @@ function menuLoop(t) {
   camera.rotation.x = Math.atan2((menuGroundY + 4) - cy, Math.sqrt(dx*dx + dz*dz)) * 0.82;
   camera.rotation.z = 0;
 
-  // Slow day/night for atmosphere
   updateDayNight(dt * 0.55);
   flushDirtyChunks();
   renderer.render(scene, camera);
 }
-requestAnimationFrame(menuLoop);
+
+// Defer world gen to AFTER module fully loads so _startGame is registered
+setTimeout(() => {
+  genWorld();
+  fullRebuild();
+  for (let y = WMAXH; y >= 0; y--) {
+    if (solid(centerX | 0, y, centerZ | 0)) { menuGroundY = y; break; }
+  }
+  requestAnimationFrame(menuLoop);
+}, 0);
 
 // ── Helpers ───────────────────────────────────────────────────────
 function spawnPlayer() {
