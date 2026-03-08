@@ -32,7 +32,11 @@ body {
 /* ═══════════════════════════════════════════════
    GAME CANVAS
 ═══════════════════════════════════════════════ */
-canvas#c { display:block; width:100vw; height:100vh; }
+canvas#c {
+  display:block; width:100vw; height:100vh;
+  /* RTX bloom: brightness + contrast + saturation boost */
+  filter: brightness(1.06) contrast(1.1) saturate(1.18);
+}
 
 /* ═══════════════════════════════════════════════
    IN-GAME HUD
@@ -70,13 +74,19 @@ canvas#c { display:block; width:100vw; height:100vh; }
   position:fixed;inset:0;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   z-index:100;
-  background:linear-gradient(160deg,rgba(0,8,0,0.84) 0%,rgba(0,0,8,0.78) 100%);
-  backdrop-filter:blur(2px);
+  /* Semi-transparent — live 3D world visible behind */
+  background: linear-gradient(160deg,rgba(0,5,0,0.60) 0%,rgba(0,2,6,0.46) 50%,rgba(0,5,0,0.63) 100%);
+  backdrop-filter: blur(0.5px) brightness(0.84) saturate(1.22);
 }
 #overlay::before {
-  content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,80,0.012) 2px,rgba(0,255,80,0.012) 4px);
-  pointer-events:none;z-index:0;
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  /* Cinematic vignette */
+  background: radial-gradient(ellipse at 50% 42%,transparent 22%,rgba(0,0,0,0.62) 100%);
+}
+#overlay::after {
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  /* RTX scanline grain */
+  background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,80,0.007) 3px,rgba(0,255,80,0.007) 4px);
 }
 .menu-corner{position:absolute;width:56px;height:56px;border-color:rgba(57,255,106,0.35);border-style:solid;border-width:0;z-index:1;pointer-events:none}
 .menu-corner.tl{top:16px;left:16px;border-top-width:2px;border-left-width:2px}
