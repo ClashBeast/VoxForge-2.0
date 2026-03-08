@@ -24,8 +24,10 @@ export function updateDayNight(dt) {
 
   sun.position.set(Math.cos(angle) * 80, Math.sin(angle) * 80, 20);
   const brightness    = Math.max(0, Math.sin(t * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5);
-  sun.intensity       = 0.08 + brightness * 1.1;
-  ambient.intensity   = 0.15 + brightness * 0.55;
+  // FIX: keep total light (sun + ambient) from exceeding ~1.0 at noon
+  // Old values caused washout: sun 1.18 + ambient 0.70 = 1.88
+  sun.intensity       = 0.05 + brightness * 0.72;
+  ambient.intensity   = 0.12 + brightness * 0.32;
 
   // Stars fade in at night
   if (starField) {
@@ -94,11 +96,11 @@ export function initThree() {
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.setSize(innerWidth, innerHeight);
 
-  sun     = new THREE.DirectionalLight(0xfff8e8, 1.1);
+  sun     = new THREE.DirectionalLight(0xfff8e8, 0.77);
   sun.position.set(40, 80, 20);
   scene.add(sun);
 
-  ambient = new THREE.AmbientLight(0xaaccff, 0.6);
+  ambient = new THREE.AmbientLight(0xaaccff, 0.44);
   scene.add(ambient);
 
   window.addEventListener('resize', () => {
