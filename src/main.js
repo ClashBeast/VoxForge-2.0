@@ -164,12 +164,15 @@ function flashAutosave() {
 }
 
 // ── Game loop ─────────────────────────────────────────────────────
-let prevT = 0;
+let prevT = -1;  // -1 = uninitialized
 let autoSaveTimer = 0;
 
 function loop(t) {
   requestAnimationFrame(loop);
-  const dt = Math.min((t - prevT) / 1000, 0.05);
+  // FIX: on the very first frame prevT=0 causes dt=(page load time) which
+  // spikes physics. Seed prevT on first real call instead.
+  if (prevT < 0) { prevT = t; return; }
+  const dt = Math.min((t - prevT) / 1000, 0.033); // cap at 33ms (~30fps) not 50ms
   prevT = t;
   if (isPaused() || dead) return;
 
