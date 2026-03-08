@@ -136,6 +136,51 @@ if (hasSave()) {
   document.getElementById('loadWorldBtn').style.display = 'block';
 }
 
+// ── MENU BACKGROUND: live 3D world orbit ──────────────────────────
+let menuLoopActive = true;
+let menuT = 0;
+const ORBIT_SPEED = 0.018;
+
+// Generate menu background world silently at boot
+genWorld();
+fullRebuild();
+
+// Find terrain height at center for camera anchor
+const centerX = WSIZ / 2, centerZ = WSIZ / 2;
+let menuGroundY = 12;
+for (let y = WMAXH; y >= 0; y--) {
+  if (solid(centerX | 0, y, centerZ | 0)) { menuGroundY = y; break; }
+}
+
+let menuPrevT = -1;
+function menuLoop(t) {
+  if (!menuLoopActive) return;
+  requestAnimationFrame(menuLoop);
+  if (menuPrevT < 0) { menuPrevT = t; return; }
+  const dt = Math.min((t - menuPrevT) / 1000, 0.04);
+  menuPrevT = t;
+  menuT += dt;
+
+  // Slow cinematic orbit around world center
+  const angle = menuT * ORBIT_SPEED * Math.PI * 2;
+  const cx = centerX + Math.cos(angle) * 24;
+  const cz = centerZ + Math.sin(angle) * 24;
+  const cy = menuGroundY + 13 + Math.sin(menuT * 0.28) * 2.8;
+
+  camera.position.set(cx, cy, cz);
+  camera.rotation.order = 'YXZ';
+  const dx = centerX - cx, dz = centerZ - cz;
+  camera.rotation.y = Math.atan2(-dx, -dz);
+  camera.rotation.x = Math.atan2((menuGroundY + 4) - cy, Math.sqrt(dx*dx + dz*dz)) * 0.82;
+  camera.rotation.z = 0;
+
+  // Slow day/night for atmosphere
+  updateDayNight(dt * 0.55);
+  flushDirtyChunks();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(menuLoop);
+
 // ── Helpers ───────────────────────────────────────────────────────
 function spawnPlayer() {
   const spx = Math.floor(WSIZ / 2), spz = Math.floor(WSIZ / 2);
@@ -244,27 +289,48 @@ function loop(t) {
 
 // New world
 window._startGame = function () {
-  genWorld();
-  spawnPlayer();
-  fullRebuild();
-  document.getElementById('overlay').style.display = 'none';
-  setStarted(true);
-  document.body.requestPointerLock();
-  buildHUD(selSlot);
-  requestAnimationFrame(loop);
+  menuLoopActive = false;
+
+  // Show loading message so player knows it's working
+  const overlay = document.getElementById('overlay');
+  overlay.innerHTML = '<div style="font-family:'Orbitron',sans-serif;font-size:22px;color:#39ff6a;letter-spacing:8px;text-shadow:0 0 20px rgba(57,255,106,0.8)">GENERATING WORLD...</div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(57,255,106,0.4);margin-top:12px;letter-spacing:3px">Please wait</div>';
+
+  // Yield to browser so the loading text actually renders before the heavy work
+  setTimeout(() => {
+    genWorld();
+    spawnPlayer();
+    fullRebuild();
+    overlay.style.display = 'none';
+    setStarted(true);
+    document.body.requestPointerLock();
+    buildHUD(selSlot);
+    prevT = -1;
+    requestAnimationFrame(loop);
+  }, 60);
 };
 
 // Continue from save
 window._loadAndStart = function () {
-  if (loadWorld()) {
-    spawnPlayer();
-    fullRebuild();
-    document.getElementById('overlay').style.display = 'none';
-    setStarted(true);
-    document.body.requestPointerLock();
-    buildHUD(selSlot);
-    requestAnimationFrame(loop);
-  }
+  menuLoopActive = false;
+
+  const overlay = document.getElementById('overlay');
+  overlay.innerHTML = '<div style="font-family:'Orbitron',sans-serif;font-size:22px;color:#39ff6a;letter-spacing:8px;text-shadow:0 0 20px rgba(57,255,106,0.8)">LOADING WORLD...</div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(57,255,106,0.4);margin-top:12px;letter-spacing:3px">Restoring your save</div>';
+
+  setTimeout(() => {
+    if (loadWorld()) {
+      spawnPlayer();
+      fullRebuild();
+      overlay.style.display = 'none';
+      setStarted(true);
+      document.body.requestPointerLock();
+      buildHUD(selSlot);
+      prevT = -1;
+      requestAnimationFrame(loop);
+    } else {
+      overlay.innerHTML = '<div style="font-family:'Orbitron',sans-serif;font-size:18px;color:#ff4444;letter-spacing:4px">LOAD FAILED</div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(255,100,100,0.5);margin-top:12px">No save data found — please start a new world</div>';
+      setTimeout(() => location.reload(), 2500);
+    }
+  }, 60);
 };
 
 // Resume from pause
@@ -294,16 +360,28 @@ window._loadGame = function () {
 // New world from pause menu
 window._newGame = function () {
   if (!confirm('Delete your save and start a new world?')) return;
+  menuLoopActive = false;
   deleteSave();
-  genWorld();
-  spawnPlayer();
-  fullRebuild();
-  document.getElementById('loadWorldBtn').style.display = 'none';
-  import('./player/input.js').then(m => {
-    m.setPaused(false);
-    document.getElementById('pause').style.display = 'none';
-    document.body.requestPointerLock();
-  });
+
+  // Show brief loading flash
+  document.getElementById('pause').style.display = 'none';
+  const overlay = document.getElementById('overlay');
+  overlay.style.display = 'flex';
+  overlay.innerHTML = '<div style="font-family:\'Orbitron\',sans-serif;font-size:22px;color:#39ff6a;letter-spacing:8px;text-shadow:0 0 20px rgba(57,255,106,0.8)">GENERATING WORLD...</div>';
+
+  setTimeout(() => {
+    genWorld();
+    spawnPlayer();
+    fullRebuild();
+    overlay.style.display = 'none';
+    document.getElementById('loadWorldBtn').style.display = 'none';
+    prevT = -1;
+    import('./player/input.js').then(m => {
+      m.setPaused(false);
+      document.body.requestPointerLock();
+      requestAnimationFrame(loop);
+    });
+  }, 60);
 };
 
 // Respawn
