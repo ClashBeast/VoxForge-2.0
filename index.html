@@ -1,653 +1,741 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
+
 <title>VoxForge 1.0.1</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
+
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
 <style>
+
 /* ── RESET ── */
+
 *{margin:0;padding:0;box-sizing:border-box}
+
 :root{
+
   --gold:#c8a84b;--gold-hi:#f5e08a;--gold-lo:#7a5810;
+
   --stone-bg:linear-gradient(180deg,rgba(80,72,62,0.93) 0%,rgba(52,47,40,0.96) 45%,rgba(42,38,32,0.96) 55%,rgba(65,58,50,0.93) 100%);
+
   --stone-bg-hover:linear-gradient(180deg,rgba(105,96,80,0.95) 0%,rgba(75,68,57,0.97) 45%,rgba(62,56,46,0.97) 55%,rgba(88,80,66,0.95) 100%);
+
   --stone-border:rgba(155,135,85,0.42);--stone-border-hi:rgba(210,185,120,0.55);
+
   --cyan:#40e0d0;
+
   --f-title:'Cinzel Decorative',serif;--f-body:'Cinzel',serif;--f-mono:'Share Tech Mono',monospace;
+
 }
+
 body{background:#000;overflow:hidden;font-family:var(--f-body);user-select:none}
 
+
+
 /* ── CANVAS RTX filter ── */
+
 canvas#c{display:block;width:100vw;height:100vh;filter:brightness(1.07) contrast(1.12) saturate(1.22)}
 
-/* ── HUD (unchanged visuals, just gold accent) ── */
+
+
+/* ── HUD ── */
+
 #crosshair{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:10}
+
 #crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(255,255,255,0.85);box-shadow:0 0 3px #000}
+
 #crosshair::before{width:2px;height:22px;left:-1px;top:-11px}
+
 #crosshair::after{width:22px;height:2px;top:-1px;left:-11px}
+
 #hud{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:3px;z-index:10}
+
 .slot{width:52px;height:52px;border:2px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.55);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:border-color .15s}
+
 .slot.active{border:2px solid var(--gold-hi);box-shadow:0 0 14px rgba(200,168,75,0.55)}
+
 .slot canvas{width:32px;height:32px;image-rendering:pixelated}
+
 .slot-num{position:absolute;bottom:2px;right:4px;color:#ccc;font-size:9px;font-family:var(--f-mono)}
+
 #bars{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);display:flex;gap:2px;z-index:10}
+
 .heart,.food{width:18px;height:18px;font-size:14px;line-height:18px;text-align:center}
+
 #hotlabel{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);color:#e8ddc0;font-size:11px;z-index:10;letter-spacing:2px;pointer-events:none;font-family:var(--f-mono)}
+
 #info{position:fixed;top:8px;left:8px;color:#e8ddc0;font-size:11px;z-index:10;line-height:1.9;background:rgba(18,14,8,0.78);padding:7px 12px;border-left:2px solid rgba(200,168,75,0.55);font-family:var(--f-mono)}
+
 #autosave{position:fixed;top:8px;right:116px;color:var(--gold-hi);font-size:11px;z-index:10;opacity:0;transition:opacity 0.5s;font-family:var(--f-mono)}
+
 #dmg{position:fixed;inset:0;pointer-events:none;z-index:50;border:8px solid transparent;transition:border-color 0.1s}
+
 #dmg.flash{border-color:rgba(255,0,0,0.6)}
+
 #breakprogress{position:fixed;bottom:148px;left:50%;transform:translateX(-50%);width:130px;height:7px;background:rgba(0,0,0,0.6);border:1px solid rgba(200,168,75,0.2);border-radius:4px;z-index:10;display:none}
+
 #breakbar{height:100%;width:0%;background:linear-gradient(90deg,#c8a84b,#f5e08a);border-radius:3px;transition:width 0.05s linear;box-shadow:0 0 6px var(--gold)}
+
 #underwater{position:fixed;inset:0;pointer-events:none;z-index:5;background:rgba(20,60,150,0.38);display:none}
+
 #toast{position:fixed;top:52px;left:50%;transform:translateX(-50%);background:rgba(28,20,10,0.94);color:var(--gold-hi);padding:6px 20px;font-size:12px;z-index:200;pointer-events:none;opacity:0;transition:opacity 0.3s;border:1px solid rgba(200,168,75,0.28);font-family:var(--f-mono);letter-spacing:1px}
+
 #toast.show{opacity:1}
+
 #minimap{position:fixed;top:8px;right:8px;border:1px solid rgba(200,168,75,0.25);z-index:20;background:#080604;image-rendering:pixelated;box-shadow:0 0 12px rgba(0,0,0,0.8)}
+
 #blocktip{position:fixed;bottom:162px;left:50%;transform:translateX(-50%);background:rgba(18,14,8,0.85);color:var(--gold-hi);font-size:10px;padding:3px 12px;z-index:10;pointer-events:none;letter-spacing:2px;display:none;font-family:var(--f-mono);border:1px solid rgba(200,168,75,0.18)}
+
 #compass{position:fixed;top:10px;left:50%;transform:translateX(-50%);color:#e8ddc0;font-size:12px;z-index:10;letter-spacing:3px;pointer-events:none;background:rgba(18,14,8,0.65);padding:3px 14px;font-family:var(--f-mono);border:1px solid rgba(200,168,75,0.18)}
+
 #biometag{position:fixed;top:38px;left:50%;transform:translateX(-50%);color:var(--gold-hi);font-size:9px;z-index:10;letter-spacing:2px;pointer-events:none;background:rgba(18,14,8,0.55);padding:2px 10px;font-family:var(--f-mono)}
 
+
+
 /* ═══════════════════
+
    MAIN MENU OVERLAY
+
 ═══════════════════ */
+
 #overlay{
+
   position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;
-  /* translucent — world shows behind */
+
   background:radial-gradient(ellipse at 50% 60%,rgba(0,0,0,0) 0%,rgba(0,0,0,0.55) 100%);
+
   backdrop-filter:brightness(0.8) saturate(1.35) blur(0.3px);
+
 }
-/* bottom warmth gradient matching sunset */
+
 #overlay::before{content:'';position:absolute;bottom:0;left:0;right:0;height:40%;pointer-events:none;z-index:0;background:linear-gradient(0deg,rgba(20,10,0,0.6) 0%,transparent 100%)}
-/* top fade */
+
 #overlay::after{content:'';position:absolute;top:0;left:0;right:0;height:25%;pointer-events:none;z-index:0;background:linear-gradient(180deg,rgba(0,0,0,0.35) 0%,transparent 100%)}
 
-.menu-corner{display:none}
+
+
 #ver-info{position:absolute;bottom:12px;left:18px;color:rgba(220,195,130,0.75);font-size:12px;font-family:var(--f-body);letter-spacing:1px;z-index:2;text-shadow:0 1px 4px rgba(0,0,0,1)}
+
 #copy-info{position:absolute;bottom:12px;right:18px;color:rgba(220,195,130,0.65);font-size:12px;font-family:var(--f-body);letter-spacing:0.5px;z-index:2;text-shadow:0 1px 4px rgba(0,0,0,1)}
 
-/* ── LOGO ── */
+
+
 .logo-wrap{position:relative;z-index:2;margin-bottom:16px;animation:logoIn 1s cubic-bezier(.16,1,.3,1) both;text-align:center}
+
 @keyframes logoIn{from{opacity:0;transform:translateY(-36px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+
 .logo-main{
+
   font-family:var(--f-title);font-size:clamp(46px,7.5vw,100px);font-weight:900;
+
   letter-spacing:5px;text-transform:uppercase;line-height:1;display:inline-block;
-  /* Gold metallic gradient */
+
   background:linear-gradient(180deg,#fff 0%,#faf0a0 12%,#e8c84a 28%,#a07018 46%,#c8a030 58%,#f0d870 76%,#805010 100%);
+
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  /* Deep shadow + gold glow */
+
   filter:drop-shadow(0 0 28px rgba(210,160,40,0.75)) drop-shadow(0 0 70px rgba(200,140,30,0.35)) drop-shadow(3px 5px 14px rgba(0,0,0,1));
+
   animation:logoGlow 3.5s ease-in-out infinite alternate;
+
 }
+
 @keyframes logoGlow{
+
   from{filter:drop-shadow(0 0 22px rgba(210,160,40,0.65)) drop-shadow(3px 5px 14px rgba(0,0,0,1))}
+
   to{filter:drop-shadow(0 0 42px rgba(220,170,50,1)) drop-shadow(0 0 90px rgba(200,140,30,0.4)) drop-shadow(3px 5px 14px rgba(0,0,0,1))}
+
 }
-/* cyan underline glow, like the image */
+
 .logo-underline{width:65%;margin:5px auto 0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);box-shadow:0 0 10px var(--cyan),0 0 28px rgba(64,224,208,0.45)}
-/* splash text — yellow italic like the image */
+
 #splash{
+
   position:absolute;top:-6px;right:-20px;
+
   color:#ffe84d;font-size:13px;font-style:italic;font-weight:700;
+
   font-family:'Comic Sans MS','Chalkboard SE',cursive;
+
   transform:rotate(10deg);white-space:nowrap;pointer-events:none;
+
   text-shadow:1px 2px 0 rgba(0,0,0,0.85),0 0 14px rgba(255,220,40,0.7);
+
   animation:splashPop .85s ease-in-out infinite alternate;
+
 }
+
 @keyframes splashPop{from{transform:rotate(10deg) scale(1)}to{transform:rotate(10deg) scale(1.1)}}
 
-/* ── MENU BOX ── */
+
+
 .menu-box{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:5px;width:min(470px,82vw);animation:menuIn .9s cubic-bezier(.16,1,.3,1) .12s both}
+
 @keyframes menuIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── BUTTONS — stone/metal exactly like the image ── */
+
+
 .mbtn{
+
   width:100%;padding:14px 0;cursor:pointer;position:relative;overflow:hidden;
+
   font-family:var(--f-body);font-size:14px;font-weight:600;letter-spacing:4px;text-transform:uppercase;
+
   color:#ddd5b8;
+
   background:var(--stone-bg);
+
   border:1px solid var(--stone-border);
+
   border-top-color:var(--stone-border-hi);
+
   border-bottom-color:rgba(25,20,14,0.85);
+
   box-shadow:inset 0 1px 0 rgba(220,195,130,0.18),inset 0 -1px 0 rgba(0,0,0,0.45),0 3px 14px rgba(0,0,0,0.55),0 1px 0 rgba(0,0,0,0.7);
+
   text-shadow:0 1px 4px rgba(0,0,0,0.95),0 0 10px rgba(190,155,60,0.15);
+
   transition:all .18s ease;
+
 }
-/* shimmer on hover */
+
 .mbtn::before{content:'';position:absolute;left:-130%;top:0;width:55%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,245,185,0.07),transparent);transform:skewX(-18deg);transition:left .5s ease}
-/* top edge highlight */
+
 .mbtn::after{content:'';position:absolute;top:0;left:8%;width:84%;height:1px;background:linear-gradient(90deg,transparent,rgba(220,195,130,0.38),transparent)}
+
 .mbtn:hover{
+
   background:var(--stone-bg-hover);
+
   border-color:rgba(200,168,75,0.65);border-top-color:rgba(235,210,140,0.72);
+
   color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.95),0 0 18px rgba(210,170,70,0.55);
+
   box-shadow:inset 0 1px 0 rgba(235,215,145,0.28),inset 0 -1px 0 rgba(0,0,0,0.45),0 4px 22px rgba(0,0,0,0.65),0 0 22px rgba(200,165,60,0.12);
+
   transform:translateY(-1px);
+
 }
+
 .mbtn:hover::before{left:130%}
+
 .mbtn:active{transform:translateY(1px);box-shadow:inset 0 2px 8px rgba(0,0,0,0.55),0 1px 4px rgba(0,0,0,0.55)}
+
 .mbtn.primary{border-color:rgba(64,224,208,0.48);border-top-color:rgba(100,245,230,0.58)}
+
 .mbtn.primary:hover{box-shadow:inset 0 1px 0 rgba(100,245,230,0.18),0 0 22px rgba(64,224,208,0.18),0 4px 22px rgba(0,0,0,0.65)}
+
 .mbtn.danger{color:#ffb8a0;border-color:rgba(190,70,50,0.38)}
+
 .mbtn.danger:hover{border-color:rgba(240,100,75,0.65);box-shadow:0 0 20px rgba(190,55,35,0.22),0 4px 18px rgba(0,0,0,0.65)}
+
 .mbtn.disabled{opacity:0.33;cursor:not-allowed;pointer-events:none;filter:saturate(0.35)}
 
-/* icon buttons (globe, accessibility) */
+
+
 .bottom-row{display:flex;gap:5px;width:100%;align-items:stretch}
+
 .icon-btn{
+
   width:50px;min-width:50px;display:flex;align-items:center;justify-content:center;
+
   font-size:20px;cursor:pointer;flex-shrink:0;
+
   background:var(--stone-bg);border:1px solid var(--stone-border);border-top-color:var(--stone-border-hi);
+
   box-shadow:inset 0 1px 0 rgba(220,195,130,0.15),0 3px 10px rgba(0,0,0,0.55);
+
   transition:all .18s;
+
 }
+
 .icon-btn:hover{border-color:rgba(200,168,75,0.62);box-shadow:0 0 16px rgba(200,168,75,0.18),0 3px 14px rgba(0,0,0,0.55);transform:translateY(-1px)}
+
+
 
 .menu-sep{width:88%;height:1px;background:linear-gradient(90deg,transparent,rgba(200,168,75,0.28),transparent);margin:3px auto}
 
+
+
 #skinDrop{width:100%;padding:9px 0;font-family:var(--f-mono);font-size:9px;letter-spacing:2px;color:rgba(200,175,115,0.38);background:rgba(25,20,13,0.65);border:1px dashed rgba(155,135,80,0.18);text-align:center;cursor:pointer;transition:all .2s}
+
 #skinDrop:hover,#skinDrop.drag-over{border-color:rgba(200,168,75,0.38);color:rgba(220,185,110,0.68)}
+
 #skinInput{display:none}
+
 .ctrl-hint{font-family:var(--f-mono);font-size:8.5px;letter-spacing:1.5px;color:rgba(175,150,90,0.32);text-align:center;line-height:2.4;margin-top:3px}
+
 .ctrl-hint b{color:rgba(200,168,75,0.42);font-weight:400}
 
+
+
 /* ═══════════════════
+
    MODALS
+
 ═══════════════════ */
+
 .modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);backdrop-filter:blur(5px)}
+
 .modal.open{display:flex}
+
 .modal-box{
+
   background:linear-gradient(180deg,rgba(42,37,28,0.99),rgba(28,24,17,0.99));
+
   border:1px solid rgba(155,135,85,0.38);border-top-color:rgba(210,185,120,0.52);
+
   padding:26px 30px;width:min(510px,88vw);max-height:82vh;overflow-y:auto;
+
   position:relative;animation:modalIn .22s ease both;
+
   box-shadow:0 8px 44px rgba(0,0,0,0.85),inset 0 1px 0 rgba(220,195,130,0.12);
+
 }
+
 @keyframes modalIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+
 .modal-title{font-family:var(--f-title);font-size:15px;font-weight:700;letter-spacing:4px;color:var(--gold-hi);text-shadow:0 0 16px rgba(200,168,75,0.5),0 2px 4px rgba(0,0,0,0.9);margin-bottom:20px;text-transform:uppercase}
+
 .modal-close{position:absolute;top:13px;right:14px;background:none;border:none;color:rgba(200,168,75,0.38);font-size:18px;cursor:pointer;font-family:var(--f-mono);transition:color .15s}
+
 .modal-close:hover{color:var(--gold-hi)}
 
-/* world cards */
+
+
 .world-card{display:flex;align-items:center;gap:12px;padding:11px 13px;margin-bottom:6px;background:rgba(18,14,8,0.7);border:1px solid rgba(155,135,85,0.18);cursor:default;transition:all .15s}
+
 .world-card:hover{border-color:rgba(200,168,75,0.32);background:rgba(30,24,14,0.7)}
+
 .world-thumb{width:50px;height:50px;flex-shrink:0;background:linear-gradient(135deg,#2a3818,#3a5022,#1a2810);display:flex;align-items:center;justify-content:center;font-size:22px}
+
 .world-info{flex:1}
+
 .world-name{font-size:13px;font-weight:600;color:var(--gold-hi);letter-spacing:1px;margin-bottom:3px;font-family:var(--f-body)}
+
 .world-meta{font-size:9px;color:rgba(175,150,90,0.5);font-family:var(--f-mono);letter-spacing:1px}
+
 .world-actions{display:flex;gap:4px}
+
 .world-act-btn{padding:4px 9px;font-size:9px;letter-spacing:1px;background:rgba(38,32,22,0.85);border:1px solid rgba(155,135,85,0.18);color:rgba(200,175,110,0.7);cursor:pointer;font-family:var(--f-mono);transition:all .12s}
+
 .world-act-btn:hover{border-color:rgba(200,168,75,0.5);color:var(--gold-hi)}
+
 .world-act-btn.del{border-color:rgba(180,40,40,0.2);color:#f88}
+
 .world-act-btn.del:hover{border-color:rgba(240,60,60,0.5)}
 
-/* options rows */
+
+
 .opt-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(155,135,85,0.08);gap:8px}
+
 .opt-label{font-family:var(--f-mono);font-size:10px;color:rgba(190,165,100,0.62);flex-shrink:0}
+
 .opt-val{font-family:var(--f-mono);font-size:10px;color:var(--gold-hi);min-width:80px;text-align:right}
+
 input[type=range]{width:130px;accent-color:var(--gold)}
+
 input[type=text]{background:rgba(18,14,8,0.8);border:1px solid rgba(155,135,85,0.22);color:var(--gold-hi);font-family:var(--f-mono);font-size:10px;padding:4px 8px;letter-spacing:1px;outline:none;width:170px}
+
 input[type=text]:focus{border-color:rgba(200,168,75,0.5)}
+
 .toggle-group{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}
+
 .tgl{padding:3px 9px;font-size:9px;font-family:var(--f-mono);letter-spacing:1px;background:rgba(25,20,13,0.85);border:1px solid rgba(120,105,65,0.22);color:rgba(175,150,90,0.42);cursor:pointer;transition:all .12s}
+
 .tgl.active{background:rgba(100,75,20,0.45);border-color:rgba(200,168,75,0.55);color:var(--gold-hi);text-shadow:0 0 8px rgba(200,168,75,0.5)}
+
 .section-label{font-family:var(--f-mono);font-size:9px;color:rgba(200,168,75,0.3);letter-spacing:2px;margin-bottom:10px;margin-top:6px}
 
-/* wardrobe preview */
+
+
 #wardrobePreview{width:110px;height:190px;background:linear-gradient(180deg,rgba(18,14,8,0.9),rgba(10,8,4,0.98));border:1px solid rgba(155,135,85,0.2);display:flex;align-items:center;justify-content:center;font-size:60px;margin:0 auto 16px;position:relative}
+
 #wardrobePreview::after{content:'3D PREVIEW';position:absolute;bottom:5px;font-size:8px;color:rgba(200,168,75,0.25);font-family:var(--f-mono);letter-spacing:2px}
 
-/* quit confirm */
+
+
 #quitConfirm{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);backdrop-filter:blur(5px)}
+
 #quitConfirm.open{display:flex}
+
 .quit-box{background:linear-gradient(180deg,rgba(42,37,28,0.99),rgba(28,24,17,0.99));border:1px solid rgba(200,60,40,0.32);padding:28px 36px;text-align:center;animation:modalIn .2s ease both;box-shadow:0 8px 40px rgba(0,0,0,0.85)}
+
 .quit-box h3{font-family:var(--f-title);font-size:14px;letter-spacing:4px;color:#f08070;margin-bottom:9px;text-shadow:0 0 12px rgba(200,60,40,0.5)}
+
 .quit-box p{font-size:11px;color:rgba(200,140,120,0.55);margin-bottom:20px;font-family:var(--f-mono)}
+
 .quit-row{display:flex;gap:10px;justify-content:center}
 
-/* ═══════════════════
-   PAUSE MENU
-═══════════════════ */
+
+
 #pause{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;color:#fff;backdrop-filter:blur(4px)}
+
 #pause h2{font-family:var(--f-title);font-size:24px;letter-spacing:8px;color:var(--gold-hi);text-shadow:0 0 20px rgba(200,168,75,0.65),0 3px 8px rgba(0,0,0,0.95);margin-bottom:22px}
+
 .pause-btns{display:flex;flex-direction:column;gap:6px;width:270px}
+
 .pbtn{padding:12px;font-family:var(--f-body);font-size:12px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#ddd5b8;background:var(--stone-bg);border:1px solid var(--stone-border);border-top-color:var(--stone-border-hi);cursor:pointer;transition:all .15s;box-shadow:inset 0 1px 0 rgba(220,195,130,0.15),0 3px 10px rgba(0,0,0,0.55)}
+
 .pbtn:hover{background:var(--stone-bg-hover);border-color:rgba(200,168,75,0.6);color:#fff;text-shadow:0 0 12px rgba(200,168,75,0.45);box-shadow:0 0 18px rgba(200,168,75,0.1),0 4px 16px rgba(0,0,0,0.65)}
+
 .pbtn.danger{color:#ffa898;border-color:rgba(180,40,30,0.22)}
+
 .pbtn.danger:hover{border-color:rgba(240,70,55,0.55)}
+
 .pbtn-row{display:flex;gap:6px}
+
 .pbtn-row .pbtn{flex:1;font-size:11px}
+
 #saveMsg{color:var(--gold-hi);font-size:10px;margin-top:10px;min-height:15px;letter-spacing:1px;font-family:var(--f-mono);text-align:center}
 
-/* ═══════════════════
-   DEATH SCREEN
-═══════════════════ */
+
+
 #dead{position:fixed;inset:0;background:rgba(50,0,0,0.85);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:110;color:#fff;backdrop-filter:blur(4px) saturate(0.3)}
+
 #dead h2{font-family:var(--f-title);font-size:50px;letter-spacing:6px;color:#ff2020;text-shadow:0 0 32px rgba(255,0,0,0.85),3px 3px 0 #300;margin-bottom:12px;animation:deathPulse 1s ease-in-out infinite alternate}
+
 @keyframes deathPulse{from{text-shadow:0 0 32px rgba(255,0,0,0.8)}to{text-shadow:0 0 64px rgba(255,0,0,1),0 0 110px rgba(255,80,0,0.3)}}
+
 #dead p{color:rgba(255,165,155,0.55);margin-bottom:28px;font-size:12px;font-family:var(--f-mono);letter-spacing:2px}
+
 #respawnBtn{padding:13px 36px;font-family:var(--f-title);font-size:13px;letter-spacing:4px;background:rgba(70,0,0,0.78);color:#ff5050;border:1px solid rgba(240,60,60,0.38);cursor:pointer;transition:all .15s;text-transform:uppercase}
+
 #respawnBtn:hover{background:rgba(105,0,0,0.75);border-color:rgba(255,65,65,0.8);color:#fff;box-shadow:0 0 20px rgba(255,0,0,0.3)}
 
-/* scrollbar */
+
+
 ::-webkit-scrollbar{width:4px}
+
 ::-webkit-scrollbar-track{background:rgba(18,14,8,0.4)}
+
 ::-webkit-scrollbar-thumb{background:rgba(200,168,75,0.28);border-radius:2px}
+
 </style>
+
 </head>
+
 <body>
 
-<!-- ══ GAME CANVAS ══ -->
+
+
 <canvas id="c"></canvas>
 
-<!-- ══ IN-GAME HUD ══ -->
+
+
 <div id="crosshair"></div>
+
 <div id="hud"></div>
+
 <div id="hotlabel"></div>
+
 <div id="bars"></div>
+
 <div id="info"></div>
+
 <div id="dmg"></div>
+
 <div id="underwater"></div>
+
 <div id="autosave">💾 Saved</div>
+
 <div id="breakprogress"><div id="breakbar"></div></div>
+
 <div id="toast"></div>
+
 <canvas id="minimap" width="100" height="100" title="Mini-map"></canvas>
+
 <div id="blocktip"></div>
+
 <div id="compass">N</div>
+
 <div id="biometag"></div>
 
-<!-- ══════════════════════════════════════════
-     MAIN MENU OVERLAY
-══════════════════════════════════════════ -->
+
+
 <div id="overlay">
-  <div class="menu-corner tl"></div>
-  <div class="menu-corner tr"></div>
-  <div class="menu-corner bl"></div>
-  <div class="menu-corner br"></div>
+
   <div id="ver-info">VoxForge 1.0.1 (RTX Enabled)</div>
+
   <div id="copy-info">Copyright SeWalk Ltd. 2026. Do not distribute.</div>
 
+
+
   <div class="logo-wrap">
+
     <div class="logo-main">VOXFORGE</div>
+
     <div class="logo-underline"></div>
+
     <div id="splash">Loading...</div>
+
   </div>
+
+
 
   <div class="menu-box">
+
     <button class="mbtn primary" onclick="openSingleplayer()">SINGLEPLAYER</button>
+
     <button class="mbtn disabled" title="Coming Soon">MULTIPLAYER</button>
+
     <button class="mbtn disabled" title="Coming Soon">VOXFORGE REALMS</button>
+
     <div class="menu-sep"></div>
+
     <div class="bottom-row">
+
       <button class="icon-btn" title="Language" onclick="showToastMsg('🌐 50+ languages — coming soon!')">🌐</button>
+
       <button class="mbtn" style="flex:1;font-size:13px;letter-spacing:2px" onclick="openOptions()">OPTIONS...</button>
+
       <button class="mbtn danger" style="flex:0.72;font-size:13px;letter-spacing:2px" onclick="openQuitConfirm()">QUIT GAME</button>
+
       <button class="icon-btn" title="Accessibility" onclick="showToastMsg('♿ Accessibility — coming soon!')">♿</button>
+
     </div>
+
     <button class="mbtn" onclick="openWardrobe()">🧥 &nbsp;WARDROBE  (SKIN CHANGER)</button>
+
     <div id="skinDrop"
+
          onclick="document.getElementById('skinInput').click()"
+
          ondragover="event.preventDefault();this.classList.add('drag-over')"
+
          ondragleave="this.classList.remove('drag-over')"
+
          ondrop="handleSkinDrop(event)">
+
       ⬆ &nbsp;DRAG &amp; DROP PNG SKIN HERE — OR CLICK TO BROWSE
+
     </div>
+
     <input type="file" id="skinInput" accept=".png" onchange="handleSkinFile(this.files[0])">
+
     <div class="ctrl-hint">
+
       <b>WASD</b> Move &nbsp;·&nbsp; <b>SPACE</b> Jump &nbsp;·&nbsp; <b>SHIFT</b> Sprint &nbsp;·&nbsp; <b>F</b> Fly &nbsp;·&nbsp; <b>LMB</b> Break &nbsp;·&nbsp; <b>RMB</b> Place<br>
+
       <b>Q</b> Eat &nbsp;·&nbsp; <b>ESC</b> Pause &nbsp;·&nbsp; <b>Tab</b> Debug &nbsp;·&nbsp; <b>Ctrl+S</b> Save &nbsp;·&nbsp; <b>1–9 / Scroll</b> Select Block
+
     </div>
+
   </div>
+
 </div>
 
-<!-- ══════════════════════════════════════════
-     SINGLEPLAYER MODAL
-══════════════════════════════════════════ -->
+
+
 <div class="modal" id="spModal">
+
   <div class="modal-box">
+
     <button class="modal-close" onclick="closeModal('spModal')">✕</button>
+
     <div class="modal-title">⬡ SINGLEPLAYER</div>
 
     <div class="section-label">▸ SAVED WORLDS</div>
+
     <div id="worldList"></div>
 
     <div style="height:14px"></div>
+
     <div class="section-label">▸ NEW WORLD</div>
+
     <div style="background:rgba(8,22,8,0.55);border:1px solid rgba(57,255,106,0.1);padding:14px;margin-bottom:10px">
+
       <div class="opt-row">
+
         <span class="opt-label">WORLD NAME</span>
+
         <input id="newWorldName" type="text" value="My World">
+
       </div>
-      <div class="opt-row">
-        <span class="opt-label">SEED (optional)</span>
-        <input id="worldSeed" type="text" placeholder="(random)">
-      </div>
-      <div class="opt-row">
-        <span class="opt-label">STARTING CHEST</span>
-        <div class="toggle-group">
-          <button class="tgl active" id="chestToggle" onclick="this.classList.toggle('active');this.textContent=this.classList.contains('active')?'ON':'OFF'">ON</button>
-        </div>
-      </div>
-      <div class="opt-row">
-        <span class="opt-label">MAP FEATURES</span>
-        <div class="toggle-group">
-          <button class="tgl active" onclick="this.classList.toggle('active');this.textContent=this.classList.contains('active')?'ON':'OFF'">ON</button>
-        </div>
-      </div>
+
     </div>
 
     <button class="mbtn primary" onclick="startNewWorld()" style="margin-bottom:6px">▶ CREATE &amp; PLAY</button>
+
     <button class="mbtn" id="continueBtn2" style="display:none" onclick="closeModal('spModal');loadAndStart()">📂 CONTINUE LAST SAVE</button>
+
   </div>
+
 </div>
 
-<!-- ══════════════════════════════════════════
-     OPTIONS MODAL
-══════════════════════════════════════════ -->
+
+
 <div class="modal" id="optModal">
+
   <div class="modal-box">
+
     <button class="modal-close" onclick="closeModal('optModal')">✕</button>
+
     <div class="modal-title">⚙ OPTIONS</div>
 
-    <div class="section-label">VIDEO &amp; PERFORMANCE</div>
-    <div class="opt-row">
-      <span class="opt-label">GRAPHICS QUALITY</span>
-      <div class="toggle-group">
-        <button class="tgl" onclick="setToggle(this,'gfx')">FAST</button>
-        <button class="tgl active" onclick="setToggle(this,'gfx')">FANCY</button>
-        <button class="tgl" onclick="setToggle(this,'gfx')">FABULOUS</button>
-        <button class="tgl" onclick="setToggle(this,'gfx')">RAY-TRACED</button>
-      </div>
-    </div>
-    <div class="opt-row">
-      <span class="opt-label">RENDER DISTANCE</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <input type="range" min="2" max="64" value="12" oninput="this.nextElementSibling.textContent=this.value+' chunks'">
-        <span class="opt-val">12 chunks</span>
-      </div>
-    </div>
-    <div class="opt-row">
-      <span class="opt-label">FRAMERATE</span>
-      <div class="toggle-group">
-        <button class="tgl" onclick="setToggle(this,'fps')">30</button>
-        <button class="tgl" onclick="setToggle(this,'fps')">60</button>
-        <button class="tgl" onclick="setToggle(this,'fps')">144</button>
-        <button class="tgl" onclick="setToggle(this,'fps')">360</button>
-        <button class="tgl active" onclick="setToggle(this,'fps')">UNLIMITED</button>
-      </div>
-    </div>
-    <div class="opt-row">
-      <span class="opt-label">UPSCALING</span>
-      <div class="toggle-group">
-        <button class="tgl active" onclick="setToggle(this,'ups')">OFF</button>
-        <button class="tgl" onclick="setToggle(this,'ups')">DLSS 4.0</button>
-        <button class="tgl" onclick="setToggle(this,'ups')">FSR 4.0</button>
-        <button class="tgl" onclick="setToggle(this,'ups')">XeSS</button>
-      </div>
-    </div>
-    <div class="opt-row">
-      <span class="opt-label">GUI SCALE</span>
-      <div class="toggle-group">
-        <button class="tgl active" onclick="setToggle(this,'gui')">AUTO</button>
-        <button class="tgl" onclick="setToggle(this,'gui')">1×</button>
-        <button class="tgl" onclick="setToggle(this,'gui')">2×</button>
-        <button class="tgl" onclick="setToggle(this,'gui')">3×</button>
-      </div>
-    </div>
-    <div class="opt-row">
-      <span class="opt-label">SHADER PACK</span>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span class="opt-val" style="font-size:9px">Default.vfx</span>
-        <button class="world-act-btn" onclick="showToastMsg('📁 Shader folder — coming soon!')">📁 BROWSE</button>
-      </div>
-    </div>
-
-    <div style="height:10px"></div>
-    <div class="section-label">AUDIO</div>
-    <div class="opt-row">
-      <span class="opt-label">MASTER VOLUME</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <input type="range" min="0" max="100" value="80" oninput="this.nextElementSibling.textContent=this.value+'%'">
-        <span class="opt-val">80%</span>
-      </div>
-    </div>
-    <div class="opt-row">
-      <span class="opt-label">MUSIC VOLUME</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <input type="range" min="0" max="100" value="60" oninput="this.nextElementSibling.textContent=this.value+'%'">
-        <span class="opt-val">60%</span>
-      </div>
-    </div>
-
-    <div style="height:14px"></div>
     <button class="mbtn primary" onclick="closeModal('optModal')">✓ DONE</button>
+
   </div>
+
 </div>
 
-<!-- ══════════════════════════════════════════
-     WARDROBE MODAL
-══════════════════════════════════════════ -->
-<div class="modal" id="wardModal">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('wardModal')">✕</button>
-    <div class="modal-title">🧥 WARDROBE</div>
-    <div id="wardrobePreview">🧍</div>
-    <div class="opt-row">
-      <span class="opt-label">ARM STYLE</span>
-      <div class="toggle-group">
-        <button class="tgl active" onclick="setToggle(this,'arm')">CLASSIC</button>
-        <button class="tgl" onclick="setToggle(this,'arm')">SLIM</button>
-      </div>
-    </div>
-    <div style="height:10px"></div>
-    <button class="mbtn" onclick="document.getElementById('skinInput').click()" style="margin-bottom:6px">⬆ UPLOAD SKIN PNG</button>
-    <button class="mbtn primary" onclick="applySkin()">✓ APPLY SKIN</button>
-    <div id="skinStatus" style="font-family:var(--font-mono);font-size:9px;color:rgba(57,255,106,0.35);text-align:center;margin-top:10px;letter-spacing:1px">No skin loaded</div>
-  </div>
-</div>
 
-<!-- ══════════════════════════════════════════
-     QUIT CONFIRM
-══════════════════════════════════════════ -->
+
 <div id="quitConfirm">
+
   <div class="quit-box">
+
     <h3>CONFIRM EXIT</h3>
+
     <p>Save world and exit to desktop?</p>
+
     <div class="quit-row">
+
       <button class="mbtn primary" style="width:130px;font-size:12px" onclick="confirmQuit()">SAVE &amp; EXIT</button>
+
       <button class="mbtn" style="width:95px;font-size:12px" onclick="document.getElementById('quitConfirm').classList.remove('open')">CANCEL</button>
+
     </div>
+
   </div>
+
 </div>
 
-<!-- ══════════════════════════════════════════
-     PAUSE MENU
-══════════════════════════════════════════ -->
+
+
 <div id="pause">
+
   <h2>— PAUSED —</h2>
+
   <div class="pause-btns">
+
     <button class="pbtn" onclick="resumeGame()" style="font-size:15px;letter-spacing:5px;border-color:rgba(57,255,106,0.38)">▶ RESUME</button>
-    <div class="pbtn-row">
-      <button class="pbtn" onclick="saveGame()">💾 SAVE</button>
-      <button class="pbtn" onclick="loadGame()">📂 LOAD</button>
-    </div>
-    <button class="pbtn" onclick="openOptions()">⚙ OPTIONS</button>
-    <button class="pbtn danger" onclick="newGame()">🗑 NEW WORLD</button>
+
+    <button class="pbtn" onclick="saveGame()">💾 SAVE</button>
+
   </div>
+
   <p id="saveMsg"></p>
+
 </div>
 
-<!-- ══════════════════════════════════════════
-     DEATH SCREEN
-══════════════════════════════════════════ -->
-<div id="dead">
-  <h2>YOU DIED</h2>
-  <p>Score: <span id="deathScore">0</span> blocks placed &amp; broken</p>
-  <button id="respawnBtn" onclick="respawn()">▶ RESPAWN</button>
-</div>
 
-<!-- ══════════════════════════════════════════
-     SCRIPTS
-══════════════════════════════════════════ -->
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
 <script type="module" src="src/main.js"></script>
+
 <script>
-// ── Splash texts ──────────────────────────────────────────────────
-const SPLASHES = [
-  "No creepers here bro!","Built different fr fr","SeWalk Ltd. certified!",
-  "Now with 100% more voxels!","Built in 7 days, no cap","Touch grass... in-game",
-  "It's giving Minecraft vibes","Lowkey bussin tho","Your PC will survive (maybe)",
-  "No RTX needed, we promise","The Steve era is OVER","Optimized for potato PCs",
-  "Biomes? We got 4 bro","Stars only come out at night","Fly mode goes hard ngl",
-  "Also try VOX-LIMBO!","W game ngl","100% hand-coded, no AI... wait",
-  "SeWalk Ltd. does not endorse sleep","Grab a torch, it gets dark",
-];
-document.getElementById('splash').textContent =
-  SPLASHES[Math.floor(Math.random() * SPLASHES.length)];
 
-// ── Button click sound (Web Audio) ───────────────────────────────
-let _ac;
-function clickSound() {
-  try {
-    if (!_ac) _ac = new AudioContext();
-    const o = _ac.createOscillator(), g = _ac.createGain();
-    o.connect(g); g.connect(_ac.destination);
-    o.frequency.setValueAtTime(900, _ac.currentTime);
-    o.frequency.exponentialRampToValueAtTime(420, _ac.currentTime + 0.025);
-    g.gain.setValueAtTime(0.07, _ac.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, _ac.currentTime + 0.07);
-    o.start(); o.stop(_ac.currentTime + 0.07);
-  } catch(e){}
-}
-document.addEventListener('mousedown', e => {
-  if (e.target.closest('button') || e.target.closest('.icon-btn')) clickSound();
-});
+const SPLASHES = ["Built different fr fr","SeWalk Ltd. certified!","No creepers here bro!"];
 
-// ── Toast ─────────────────────────────────────────────────────────
+document.getElementById('splash').textContent = SPLASHES[Math.floor(Math.random() * SPLASHES.length)];
+
+
+
 function showToastMsg(msg) {
+
   const t = document.getElementById('toast');
+
   t.textContent = msg; t.classList.add('show');
-  clearTimeout(t._tid);
-  t._tid = setTimeout(() => t.classList.remove('show'), 2200);
+
+  setTimeout(() => t.classList.remove('show'), 2200);
+
 }
 
-// ── Modals ────────────────────────────────────────────────────────
+
+
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
+
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-// Close modal on backdrop click
-document.querySelectorAll('.modal').forEach(m => {
-  m.addEventListener('mousedown', e => { if (e.target === m) closeModal(m.id); });
-});
 
-// ── Toggle groups ─────────────────────────────────────────────────
-function setToggle(btn, group) {
-  btn.closest('.toggle-group').querySelectorAll('.tgl')
-    .forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
 
-// ── Singleplayer ──────────────────────────────────────────────────
 function openSingleplayer() {
-  buildWorldList();
+
   const hasSave = !!localStorage.getItem('voxforge_world');
+
   document.getElementById('continueBtn2').style.display = hasSave ? 'block' : 'none';
+
   openModal('spModal');
+
 }
 
-function buildWorldList() {
-  const el = document.getElementById('worldList');
-  const hasSave = !!localStorage.getItem('voxforge_world');
-  if (!hasSave) {
-    el.innerHTML = '<div style="font-family:var(--font-mono);font-size:9px;color:rgba(90,140,90,0.35);text-align:center;padding:16px;letter-spacing:2px">— NO SAVED WORLDS —</div>';
-    return;
-  }
-  const savedAt = localStorage.getItem('voxforge_saved_at') || '—';
-  el.innerHTML = `
-    <div class="world-card">
-      <div class="world-thumb">🌍</div>
-      <div class="world-info">
-        <div class="world-name">Last World</div>
-        <div class="world-meta">Saved: ${savedAt} &nbsp;·&nbsp; VoxForge 1.0.1</div>
-      </div>
-      <div class="world-actions">
-        <button class="world-act-btn" onclick="closeModal('spModal');loadAndStart()">▶ PLAY</button>
-        <button class="world-act-btn" onclick="showToastMsg('📝 Edit — coming soon!')">✏</button>
-        <button class="world-act-btn del" onclick="deleteWorld()">🗑</button>
-      </div>
-    </div>`;
-}
 
-function deleteWorld() {
-  if (!confirm('Delete this world? Cannot be undone.')) return;
-  localStorage.removeItem('voxforge_world');
-  localStorage.removeItem('voxforge_saved_at');
-  buildWorldList();
-  document.getElementById('continueBtn2').style.display = 'none';
-  showToastMsg('🗑 World deleted');
-}
 
 function startNewWorld() {
+
   closeModal('spModal');
+
   localStorage.setItem('voxforge_saved_at', new Date().toLocaleString());
-  window._startGame();
+
+  const tryStart = () => {
+
+    if (window._startGame) {
+
+      window._startGame();
+
+    } else {
+
+      setTimeout(tryStart, 50);
+
+    }
+
+  };
+
+  tryStart();
+
 }
 
-// ── Options ───────────────────────────────────────────────────────
-function openOptions() { openModal('optModal'); }
 
-// ── Wardrobe ──────────────────────────────────────────────────────
-function openWardrobe() { openModal('wardModal'); }
-let _skinLoaded = false;
-function handleSkinFile(file) {
-  if (!file) return;
-  _skinLoaded = true;
-  document.getElementById('skinStatus').textContent = '✓ ' + file.name + ' loaded';
-  showToastMsg('✓ Skin loaded — click APPLY');
-}
-function handleSkinDrop(e) {
-  e.preventDefault();
-  document.getElementById('skinDrop').classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file && file.name.endsWith('.png')) handleSkinFile(file);
-  else showToastMsg('❌ Please drop a .png file');
-}
-function applySkin() {
-  if (!_skinLoaded) { showToastMsg('❌ No skin loaded yet!'); return; }
-  showToastMsg('✓ Skin applied!');
-  closeModal('wardModal');
+
+function loadAndStart() {
+
+  closeModal('spModal');
+
+  const tryLoad = () => {
+
+    if (window._loadAndStart) {
+
+      window._loadAndStart();
+
+    } else {
+
+      setTimeout(tryLoad, 50);
+
+    }
+
+  };
+
+  tryLoad();
+
 }
 
-// ── Quit confirm ──────────────────────────────────────────────────
-function openQuitConfirm() { document.getElementById('quitConfirm').classList.add('open'); }
+
+
 function confirmQuit() {
+
   window._saveGame && window._saveGame();
-  localStorage.setItem('voxforge_saved_at', new Date().toLocaleString());
-  document.getElementById('quitConfirm').classList.remove('open');
-  showToastMsg('💾 World saved. Close this tab to exit.');
+
+  showToastMsg('💾 World saved. Close tab.');
+
 }
 
-// ── Game bridge (all original function names preserved) ───────────
-function startGame()    { window._startGame    && window._startGame();    }
-function loadAndStart() { window._loadAndStart && window._loadAndStart(); }
-function resumeGame()   { window._resumeGame   && window._resumeGame();   }
-function respawn()      { window._respawn      && window._respawn();      }
-function saveGame() {
-  window._saveGame && window._saveGame();
-  localStorage.setItem('voxforge_saved_at', new Date().toLocaleString());
-  const el = document.getElementById('saveMsg');
-  if (el) { el.textContent = '✅ World saved!'; setTimeout(() => el.textContent = '', 2500); }
-}
-function loadGame()     { window._loadGame     && window._loadGame();     }
-function newGame()      { window._newGame      && window._newGame();      }
 
-// ── Auto-show continue on load ────────────────────────────────────
-window.addEventListener('load', () => {
-  if (localStorage.getItem('voxforge_world')) {
-    const lb = document.getElementById('loadWorldBtn');
-    if (lb) lb.style.display = 'block';
-  }
-});
+
+function resumeGame() { window._resumeGame && window._resumeGame(); }
+
+function saveGame() { window._saveGame && window._saveGame(); showToastMsg('✅ Saved!'); }
+
 </script>
+
 </body>
+
 </html>
