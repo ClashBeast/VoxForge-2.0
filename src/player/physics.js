@@ -143,7 +143,9 @@ export function updatePlayer(DT, keys, jumpPress) {
     if (PL.foodTimer > 1.5) { PL.foodTimer = 0; drainFood(1); }
   }
 
-  const SUBSTEPS = 4;
+  const SUBSTEPS = PL.fly ? 2 : Math.max(4, Math.ceil(
+    Math.sqrt(PL.vel.x**2 + PL.vel.y**2 + PL.vel.z**2) / 4
+  ));  // FIX: more substeps at high speed prevents block tunneling/overlap
   const dt = DT / SUBSTEPS;
 
   for (let s = 0; s < SUBSTEPS; s++) {
